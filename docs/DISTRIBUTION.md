@@ -36,3 +36,7 @@ Open repository, status, full-row file selection, working/staged diffs, committe
 ## Download Site
 
 Published at https://git-boy.tesliker.chatgpt.site, with the Apple-silicon Mac preview ZIP and SHA-256 checksum. Windows is honestly marked in development until runtime QA. The downloadable page source is in `website/dist`; GitHub Pages is an optional mirror.
+
+## Public launch update
+
+GitHub CLI authorization is complete. Full sanitized source, issue templates, and preview build workflows are published on `tesliker/git-boy`. The first prerelease is https://github.com/tesliker/git-boy/releases/tag/v0.4.0-alpha.1 with Mac and Windows artifacts and SHA-256 checksums. The Windows executable is an unsigned experimental alpha; manual Windows runtime/install/uninstall QA remains open in issue #1. Trusted Mac signing/notarization remains issue #2. The public download page links to those release assets. GitHub Pages is enabled as an optional mirror.
