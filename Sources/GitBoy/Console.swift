@@ -62,6 +62,37 @@ struct DPadFace: View {
         }.accessibilityHidden(true)
     }
 }
+// Apply pointer and selection behavior only to controls, not copyable code/text.
+struct ControlInteraction: ViewModifier {
+    @Environment(\.isEnabled) private var enabled
+    func body(content: Content) -> some View {
+        content.textSelection(.disabled).onContinuousHover { phase in
+            switch phase {
+            case .active: (enabled ? NSCursor.pointingHand : NSCursor.arrow).set()
+            case .ended: NSCursor.arrow.set()
+            }
+        }
+    }
+}
+extension View {
+    func controlInteraction() -> some View { modifier(ControlInteraction()) }
+}
+struct ConsoleButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    var bordered = false
+    var prominent = false
+    func makeBody(configuration: Configuration) -> some View {
+        Group {
+            if prominent { configuration.label.foregroundStyle(Color.white) }
+            else { configuration.label }
+        }
+            .padding(.horizontal, bordered || prominent ? 9 : 0)
+            .padding(.vertical, bordered || prominent ? 5 : 0)
+            .background(prominent ? Handheld.ink : bordered ? Color.black.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius:5))
+            .opacity(enabled ? (configuration.isPressed ? 0.65 : 1) : 0.4)
+            .contentShape(Rectangle()).controlInteraction()
+    }
+}
 struct HardwareButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     let pill: Bool
@@ -72,21 +103,22 @@ struct HardwareButtonStyle: ButtonStyle {
             .offset(y: configuration.isPressed ? 3 : 0)
             .opacity(enabled ? 1 : 0.40)
             .animation(.easeOut(duration: 0.10), value: configuration.isPressed)
+            .contentShape(Rectangle()).controlInteraction()
     }
 }
 struct RoundControl: View {
     let letter: String; let label: String; var disabled = false; let action: () -> Void
     var body: some View {
-        VStack(spacing: 9) {
-            Button(action: action) {
+        Button(action: action) {
+            VStack(spacing:9) {
                 Group {
                     if let image=Handheld.actionButton { Image(nsImage:image).resizable().interpolation(.high).scaledToFit().frame(width:68,height:68).scaleEffect(1.10) }
                     else { buttonFace }
-                }.frame(width:68,height:68).contentShape(Circle())
-            }.buttonStyle(HardwareButtonStyle()).disabled(disabled).accessibilityLabel(label).help(label)
-            Text(letter).font(Handheld.label(13)).foregroundStyle(Handheld.ink)
-            Text(label.uppercased()).font(Handheld.label(9)).foregroundStyle(Handheld.ink.opacity(0.8)).lineLimit(1)
-        }.frame(width: 84)
+                }.frame(width:68,height:68)
+                Text(letter).font(Handheld.label(13)).foregroundStyle(Handheld.ink)
+                Text(label.uppercased()).font(Handheld.label(9)).foregroundStyle(Handheld.ink.opacity(0.8)).lineLimit(1)
+            }.frame(width:84).contentShape(Rectangle())
+        }.buttonStyle(HardwareButtonStyle()).disabled(disabled).accessibilityLabel(label).help(label)
     }
     private var buttonFace: some View {
                 ZStack {
@@ -101,19 +133,19 @@ struct RoundControl: View {
 struct PillControl: View {
     let title: String; let detail: String; var disabled = false; let action: () -> Void
     var body: some View {
-        VStack(spacing: 8) {
-            Button(action: action) {
+        Button(action:action) {
+            VStack(spacing:8) {
                 Group {
                     if let image=Handheld.pill { Image(nsImage:image).resizable().interpolation(.high).scaledToFit().frame(width:65,height:27).scaleEffect(1.08) }
                     else {
                         Capsule().fill(LinearGradient(colors: [.black.opacity(0.3), .white.opacity(0.65)], startPoint: .top, endPoint: .bottom)).frame(width:65,height:27)
                             .overlay(Capsule().fill(Color(white:0.34)).frame(width:51,height:13).shadow(color:.black.opacity(0.5),radius:1,x:1,y:2).offset(y:-1))
                     }
-                }.frame(width:65,height:27).contentShape(Capsule())
-            }.buttonStyle(HardwareButtonStyle(pill: true)).disabled(disabled).accessibilityLabel(title).help(detail)
-            Text(title).font(Handheld.label(11)).tracking(1).foregroundStyle(Handheld.ink)
-            Text(detail.uppercased()).font(Handheld.label(8)).foregroundStyle(Handheld.ink.opacity(0.65))
-        }
+                }.frame(width:65,height:27)
+                Text(title).font(Handheld.label(11)).tracking(1).foregroundStyle(Handheld.ink)
+                Text(detail.uppercased()).font(Handheld.label(8)).foregroundStyle(Handheld.ink.opacity(0.65))
+            }.contentShape(Rectangle())
+        }.buttonStyle(HardwareButtonStyle(pill:true)).disabled(disabled).accessibilityLabel(title).help(detail)
     }
 }
 struct SpeakerGrille: View {
@@ -186,6 +218,7 @@ struct ContentView: View {
         .ignoresSafeArea()
         .frame(minWidth: 1020, minHeight: 790)
         .preferredColorScheme(.light).tint(Handheld.green)
+        .textSelection(.disabled).buttonStyle(ConsoleButtonStyle(bordered:true))
         .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         .onOpenURL { s.receive($0) }
         .onChange(of: s.base) { _, value in baseInput = value }
@@ -232,7 +265,7 @@ struct ContentView: View {
         }.padding(.top, 15).padding(.bottom, 20).padding(.horizontal, 16)
             .background(UnevenRoundedRectangle(topLeadingRadius:12,bottomLeadingRadius:12,bottomTrailingRadius:48,topTrailingRadius:12).fill(LinearGradient(colors:[Color(red:0.48,green:0.49,blue:0.54),Handheld.bezel,Color(red:0.36,green:0.37,blue:0.42)],startPoint:.topLeading,endPoint:.bottomTrailing)))
             .overlay(UnevenRoundedRectangle(topLeadingRadius:12,bottomLeadingRadius:12,bottomTrailingRadius:48,topTrailingRadius:12).stroke(.black.opacity(0.25),lineWidth:1))
-
+            
     }
     private var lcdHeader: some View {
         VStack(spacing: 7) {
@@ -243,17 +276,17 @@ struct ContentView: View {
                 Text("\(s.reviewed.count)/\(s.snapshot.changes.count)").font(.system(size:10,weight:.bold,design:.monospaced))
             }
             HStack(spacing: 16) {
-                ForEach(["Review","History","Branches"], id:\.self) { tab in Button { s.tab = tab } label: { Text((s.tab == tab ? "▶ " : "  ")+tab.uppercased()).font(.system(size:10,weight:.bold,design:.monospaced)) }.buttonStyle(.plain) }
+                ForEach(["Review","History","Branches"], id:\.self) { tab in Button { s.tab = tab } label: { Text((s.tab == tab ? "▶ " : "  ")+tab.uppercased()).font(.system(size:10,weight:.bold,design:.monospaced)) }.buttonStyle(ConsoleButtonStyle()) }
                 Spacer()
                 TextField("Compare with branch / commit",text:$baseInput).font(.system(size:10,design:.monospaced)).textFieldStyle(.plain).frame(width:170).onSubmit { s.base=baseInput;s.refresh() }.accessibilityLabel("Base revision")
-                Button("COMPARE") { s.base=baseInput;s.refresh() }.buttonStyle(.plain).font(.system(size:10,weight:.bold,design:.monospaced)).disabled(s.busy)
-                if s.reviewMode { Button("WORKING CHANGES") { s.base="";s.expectedHead=nil;s.refresh() }.buttonStyle(.plain).font(.system(size:10,weight:.bold,design:.monospaced)) }
+                Button("COMPARE") { s.base=baseInput;s.refresh() }.buttonStyle(ConsoleButtonStyle()).font(.system(size:10,weight:.bold,design:.monospaced)).disabled(s.busy)
+                if s.reviewMode { Button("WORKING CHANGES") { s.base="";s.expectedHead=nil;s.refresh() }.buttonStyle(ConsoleButtonStyle()).font(.system(size:10,weight:.bold,design:.monospaced)) }
             }
             HStack {
                 Text(s.reviewMode ? "Comparing committed changes on \(s.snapshot.branch) with \(s.base.prefix(12))" : (s.snapshot.changes.contains(where: \.conflict) ? "Merge conflict — compare both sides, edit the resolution, then save and stage" : s.snapshot.mergeInProgress ? "Merge resolved — review the staged result, then commit when ready" : "Working changes — edits that have not been committed yet"))
                     .font(.system(size:11,weight:.medium,design:.monospaced)).lineLimit(2)
                 Spacer()
-                Button {s.showGuide=true} label: {Image(systemName:"questionmark.circle")}.buttonStyle(.plain).help("How code review works")
+                Button {s.showGuide=true} label: {Image(systemName:"questionmark.circle")}.buttonStyle(ConsoleButtonStyle()).help("How code review works")
             }
         }.padding(.horizontal,14).padding(.vertical,10).tourTarget(.modes)
     }
@@ -305,7 +338,7 @@ struct ContentView: View {
                 .frame(maxWidth:.infinity,minHeight:36,alignment:.leading)
                 .background(Handheld.green.opacity(s.selected == change.path ? 0.18 : 0))
                 .contentShape(Rectangle())
-        }.buttonStyle(.plain).foregroundStyle(statusColor(change))
+        }.buttonStyle(ConsoleButtonStyle()).foregroundStyle(statusColor(change))
             .help(change.kind + " · " + (s.reviewMode ? "Committed comparison" : change.statusLabel))
             .accessibilityLabel(change.path + ", " + change.kind + ", " + (s.reviewMode ? "Committed comparison" : change.statusLabel))
     }
@@ -400,7 +433,7 @@ struct ContentView: View {
                     Button("Open Repository…",action:s.choose)
                     Divider()
                     ForEach(s.repos,id:\.self) { path in Button(URL(fileURLWithPath:path).lastPathComponent) { s.add(path) } }
-                } label: { Text("REPOSITORY ▾").font(Handheld.label(10)).foregroundStyle(Handheld.ink) }.menuStyle(.borderlessButton).frame(width:145).disabled(s.busy) }.tourTarget(.repository)
+                } label: { Text("REPOSITORY ▾").font(Handheld.label(10)).foregroundStyle(Handheld.ink) }.menuStyle(.borderlessButton).controlInteraction().frame(width:145).disabled(s.busy) }.tourTarget(.repository)
                 HStack(spacing:22) {
                     PillControl(title:"GIT ACTIONS",detail:"Stage · commit · sync",disabled:s.busy) { actionsOpen=true }.popover(isPresented:$actionsOpen) { actionsPanel }
                     PillControl(title:"REFRESH",detail:"Reload changes",disabled:s.busy || s.repo.isEmpty) { s.refresh() }
@@ -421,8 +454,8 @@ struct ContentView: View {
         HStack(alignment:.top,spacing:12) {
             Text(s.message).font(.custom("HelveticaNeue",size:12)).foregroundStyle(Handheld.ink.opacity(0.85)).lineLimit(2).textSelection(.enabled)
             Spacer()
-            Button {s.showGuide=true} label: {Label("HELP",systemImage:"questionmark.circle").font(Handheld.label(11))}.buttonStyle(.plain).foregroundStyle(Handheld.ink)
-            Button { s.copyLink();linkOpen=true } label: { Label("REVIEW LINK · THIS MAC",systemImage:"link").font(Handheld.label(11)) }.buttonStyle(.plain).foregroundStyle(Handheld.ink).disabled(s.repo.isEmpty)
+            Button {s.showGuide=true} label: {Label("HELP",systemImage:"questionmark.circle").font(Handheld.label(11))}.buttonStyle(ConsoleButtonStyle()).foregroundStyle(Handheld.ink)
+            Button { s.copyLink();linkOpen=true } label: { Label("REVIEW LINK · THIS MAC",systemImage:"link").font(Handheld.label(11)) }.buttonStyle(ConsoleButtonStyle()).foregroundStyle(Handheld.ink).disabled(s.repo.isEmpty)
                 .popover(isPresented:$linkOpen,arrowEdge:.top) {
                     VStack(alignment:.leading,spacing:14) {
                         Text("Local review link copied").font(.headline)

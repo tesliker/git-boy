@@ -54,13 +54,13 @@ struct SpotlightTour: View {
                         Button("Close") { finish() }.keyboardShortcut(.cancelAction)
                         Spacer()
                         if page > 0 {Button("Back") {page -= 1}}
-                        Button(page == steps.count-1 ? "Done" : "Next") {if page == steps.count-1 {finish()} else {page += 1}}.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                        Button(page == steps.count-1 ? "Done" : "Next") {if page == steps.count-1 {finish()} else {page += 1}}.buttonStyle(ConsoleButtonStyle(prominent:true)).keyboardShortcut(.defaultAction)
                     }
                     Text("Controls are paused during the tour. Open HELP to return.").font(.caption).foregroundStyle(.secondary)
                 }.padding(22).frame(width:cardWidth,height:cardHeight).background(Color(red:0.91,green:0.91,blue:0.86),in:RoundedRectangle(cornerRadius:16))
                     .foregroundStyle(Handheld.ink).tint(Handheld.ink).shadow(color:.black.opacity(0.4),radius:18,y:8).position(x:cardX,y:cardY)
             }.frame(width:proxy.size.width,height:proxy.size.height)
-        }.onAppear { s.tab="Review"; DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) } }.accessibilityElement(children:.contain)
+        }.onAppear { s.tab="Review"; DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) } }.accessibilityElement(children:.contain).textSelection(.disabled).buttonStyle(ConsoleButtonStyle(bordered:true))
     }
     private func finish() {UserDefaults.standard.set(true,forKey:"hasSeenGuideV2");s.showGuide=false}
 }
@@ -80,12 +80,12 @@ struct AIPromptPanel: View {
             Text("THIS IS WHAT WILL BE COPIED").font(.caption.bold()).foregroundStyle(.secondary)
             ScrollView { Text(s.aiPrompt).font(.system(size:12,design:.monospaced)).textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading).padding(12) }.frame(height:210).background(Color(nsColor:.textBackgroundColor),in:RoundedRectangle(cornerRadius:8))
             HStack {
-                Button("Copy prompt for Codex / ChatGPT") {s.copyPreparedPrompt();copied=true}.buttonStyle(.borderedProminent)
+                Button("Copy prompt for Codex / ChatGPT") {s.copyPreparedPrompt();copied=true}.buttonStyle(ConsoleButtonStyle(prominent:true))
                 Spacer()
                 if copied {Label("Copied",systemImage:"checkmark.circle.fill").foregroundStyle(.green)}
             }
             Text(copied ? "Next: paste into your Codex or ChatGPT conversation and send it there." : "You can review all of the text above before copying anything.").font(.callout).foregroundStyle(copied ? .primary : .secondary)
-        }.padding(22).frame(width:590).onAppear {intent = s.change?.conflict == true ? "Help resolve this conflict" : s.selectedCode.isEmpty ? "Review these changes" : "Explain this code";regenerate()}
+        }.padding(22).frame(width:590).textSelection(.disabled).buttonStyle(ConsoleButtonStyle(bordered:true)).onAppear {intent = s.change?.conflict == true ? "Help resolve this conflict" : s.selectedCode.isEmpty ? "Review these changes" : "Explain this code";regenerate()}
     }
     private func regenerate() { copied=false;s.prepareAIPrompt(intent:intent,question:question) }
 }
