@@ -1,0 +1,18 @@
+const {app,BrowserWindow,ipcMain,dialog,clipboard}=require('electron');
+const path=require('node:path');const {pathToFileURL}=require('node:url');const fs=require('node:fs');const core=require('./git.cjs');
+let win,state,pending;const page=pathToFileURL(path.join(__dirname,'ui/index.html')).href;
+function trusted(event){if(event.sender!==win?.webContents||event.senderFrame?.url!==page)throw Error('Untrusted request');}
+function active(){if(!state)throw Error('Open a repository first.');return state;}
+async function receive(raw){try{const u=new URL(raw);if(!['gitboy:','githarbor:'].includes(u.protocol)||u.hostname!=='review')throw Error('Unsupported review link');const candidate=u.searchParams.get('repo');const answer=await dialog.showMessageBox(win,{type:'question',buttons:['Cancel','Open repository'],defaultId:0,cancelId:0,message:'Open this local code review?',detail:candidate||'Missing repository'});if(answer.response!==1)return;const repo=await core.openRepo(candidate);state=await core.snapshot(repo,u.searchParams.get('base')||'');const expected=u.searchParams.get('head');win.webContents.send('review',{...state,file:u.searchParams.get('file'),warning:expected&&expected!==state.head?'Repository HEAD changed since this link was created.':''});}catch(e){dialog.showErrorBox('Could not open review',e.message);}}
+if(!app.requestSingleInstanceLock()){app.quit();}else{
+app.on('second-instance',(_e,args)=>{const u=args.find(v=>/^gith?(?:arbor|boy):/.test(v)||v.startsWith('gitboy://'));if(u&&win)receive(u);win?.show();});
+app.on('open-url',(e,url)=>{e.preventDefault();if(win)receive(url);else pending=url;});
+app.whenReady().then(()=>{win=new BrowserWindow({width:1240,height:900,minWidth:960,minHeight:740,title:'Git Boy Preview',webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',e=>e.preventDefault());win.webContents.session.setPermissionRequestHandler((_w,_p,done)=>done(false));win.loadURL(page);if(app.isPackaged&&process.platform==='win32'){app.setAsDefaultProtocolClient('gitboy');app.setAsDefaultProtocolClient('githarbor');}win.webContents.once('did-finish-load',()=>{const initial=pending||process.argv.find(v=>v.startsWith('gitboy://')||v.startsWith('githarbor://'));if(initial)receive(initial);});});app.on('window-all-closed',()=>app.quit());
+}
+function handle(name,fn){ipcMain.handle(name,async(event,...args)=>{trusted(event);try{return {ok:true,value:await fn(...args)};}catch(e){return {ok:false,error:e.message};}});}
+handle('choose',async()=>{const result=await dialog.showOpenDialog(win,{properties:['openDirectory']});if(result.canceled)return null;state=await core.snapshot(await core.openRepo(result.filePaths[0]));return state;});
+handle('refresh',async(base='')=>{if(typeof base!=='string'||base.length>256)throw Error('Invalid revision');state=await core.snapshot(active().repo,base);return state;});
+handle('diff',(file,staged)=>core.diff(active(),file,staged===true));
+handle('history',()=>core.git(active().repo,['log','-40','--date=short','--format=%h  %ad  %s']));
+handle('copy',text=>{if(typeof text!=='string'||text.length>200000)throw Error('Invalid clipboard text');clipboard.writeText(text);});
+handle('link',file=>{const s=active();if(file&&!s.changes.some(c=>c.path===file))throw Error('Unknown file');const u=new URL('gitboy://review');for(const [k,v]of Object.entries({repo:s.repo,base:s.base,head:s.head,file}))if(v)u.searchParams.set(k,v);clipboard.writeText(u.href);return u.href;});

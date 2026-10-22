@@ -1,0 +1,15 @@
+.build/
+dist/
+research/rea/
+.DS_Store
+tests/demo-review/
+tests/conflict-review/
+research/previous-install/
+
+desktop/node_modules/
+desktop/out/
+website/.git/
+website/.openai/local*
+
+!website/dist/
+!website/dist/**

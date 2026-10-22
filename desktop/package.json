@@ -1,0 +1,61 @@
+{
+  "name": "git-boy-desktop",
+  "version": "0.4.0-alpha.1",
+  "private": true,
+  "description": "Git Boy cross-platform review client",
+  "author": "Git Boy contributors",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.sliker.gitboy",
+    "productName": "Git Boy Preview",
+    "directories": {
+      "output": "out"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "git.cjs",
+      "ui/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../assets",
+        "to": "assets",
+        "filter": [
+          "*.png"
+        ]
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Git Boy Review",
+        "schemes": [
+          "gitboy",
+          "githarbor"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "Git-Boy-Windows-${version}-${arch}.${ext}",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  },
+  "license": "MIT"
+}

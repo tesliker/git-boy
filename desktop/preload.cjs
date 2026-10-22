@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron');
+contextBridge.exposeInMainWorld('gitboy',Object.freeze({choose:()=>ipcRenderer.invoke('choose'),refresh:base=>ipcRenderer.invoke('refresh',base),diff:(file,staged)=>ipcRenderer.invoke('diff',file,staged),history:()=>ipcRenderer.invoke('history'),copy:text=>ipcRenderer.invoke('copy',text),link:file=>ipcRenderer.invoke('link',file),onReview:callback=>ipcRenderer.on('review',(_event,value)=>callback(value))}));

@@ -1,0 +1,38 @@
+name: Preview builds
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Git-Boy-Windows-preview
+          path: desktop/out/*.exe
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native Mac preview
+        run: zsh scripts/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Git-Boy-macOS-preview
+          path: dist/Git-Boy.zip
