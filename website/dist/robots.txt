@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://git-boy.tesliker.chatgpt.site/sitemap.xml
+Sitemap: https://gitboy.app/sitemap.xml

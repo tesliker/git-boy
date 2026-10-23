@@ -35,7 +35,7 @@ Open repository, status, full-row file selection, working/staged diffs, committe
 
 ## Download Site
 
-Published at https://git-boy.tesliker.chatgpt.site, with the Apple-silicon Mac preview ZIP and SHA-256 checksum. Windows is honestly marked in development until runtime QA. The downloadable page source is in `website/dist`; GitHub Pages is an optional mirror.
+Published at https://gitboy.app, with the Apple-silicon Mac preview ZIP and SHA-256 checksum. Windows is honestly marked in development until runtime QA. The downloadable page source is in `website/dist`; GitHub Pages is an optional mirror.
 
 ## Public launch update
 

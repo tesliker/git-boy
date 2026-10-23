@@ -2,7 +2,7 @@
 
 A free, MIT-licensed Git client for human review of AI-generated code, with a vintage handheld-inspired interface.
 
-**Download:** https://git-boy.tesliker.chatgpt.site
+**Download:** https://gitboy.app
 **Bug reports and features:** https://github.com/tesliker/git-boy/issues
 
 ## Platforms
